@@ -16,6 +16,7 @@ class PlayerMethods:
         # Estado do player
         self.is_playing = False
         self.manual_play = False
+        self.manual_stop = False
         self.scheduled_thread = None
         self.should_stop = False
         self.blink_state = False
@@ -101,26 +102,23 @@ class PlayerMethods:
                 self.media_player.stop()
                 self.is_playing = False
                 self.manual_play = False
-                self.player.status_label.configure(text="Status: Parado")
+                self.manual_stop = True
+                self.player.status_label.configure(text="Status: Parado manualmente")
                 self.player.countdown_frame.configure(fg_color="#f8f9fa")
                 self.player.countdown_label.configure(text_color="black")
-                print("Reprodução interrompida")
+                print("Reprodução interrompida manualmente")
         except Exception as e:
             print(f"Erro ao parar: {e}")
             self.player.status_label.configure(text=f"Status: Erro ao parar - {str(e)}")
             self.is_playing = False
             self.manual_play = False
+            self.manual_stop = False
             self.initialize_vlc()
 
     def check_schedule(self):
         """Verifica o agendamento de reprodução"""
         while not self.should_stop:
             try:
-                # Se estiver em reprodução manual, não interfere
-                if self.manual_play:
-                    time.sleep(0.1)
-                    continue
-
                 current_time = datetime.now()
                 start_time = dt_time.fromisoformat(self.player.start_time.get())
                 stop_time = dt_time.fromisoformat(self.player.stop_time.get())
@@ -132,19 +130,21 @@ class PlayerMethods:
                 # Ajusta para caso o horário de parada seja no dia seguinte
                 if stop_time < start_time:
                     if current_datetime.time() < start_time:
-                        # Ainda não chegou no horário de início hoje
                         stop_datetime = datetime.combine(current_time.date(), stop_time)
                     else:
-                        # Já passou do horário de início, a parada será amanhã
                         stop_datetime = datetime.combine(current_time.date() + timedelta(days=1), stop_time)
 
-                if start_datetime <= current_datetime < stop_datetime:
+                # Verifica se está no período agendado e não foi parado manualmente
+                if start_datetime <= current_datetime < stop_datetime and not self.manual_stop:
                     if not self.is_playing:
                         print(f"Iniciando reprodução agendada: {current_datetime}")
                         self.player.root.after(0, lambda: self.start_playback(manual=False))
-                elif self.is_playing and not self.manual_play:
-                    print(f"Parando reprodução agendada: {current_datetime}")
-                    self.player.root.after(0, self.stop)
+                elif current_datetime >= stop_datetime:
+                    # Reseta o manual_stop quando passar do horário de parada
+                    self.manual_stop = False
+                    if self.is_playing and not self.manual_play:
+                        print(f"Parando reprodução agendada: {current_datetime}")
+                        self.player.root.after(0, self.stop)
 
                 time.sleep(0.1)
 
