@@ -143,10 +143,6 @@ class StreamPlayer:
         self.countdown_frame = ctk.CTkFrame(main_frame)
         self.countdown_frame.grid(row=5, column=0, columnspan=3, pady=10, sticky="ew")
 
-        # Separador
-        separator = ctk.CTkFrame(self.countdown_frame, height=2, fg_color="gray")
-        separator.pack(fill="x", pady=5)
-
         self.countdown_label = ctk.CTkLabel(
             self.countdown_frame,
             text="Próxima reprodução em: --:--:--",
