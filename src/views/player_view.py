@@ -56,28 +56,28 @@ class PlayerView:
         self.main_frame = ctk.CTkFrame(self.root)
         self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        # URL do Stream
+        # URL do Stream (row 0)
         self._create_url_section()
 
-        # Botão Salvar
-        self._create_save_button()
-
-        # Horários
+        # Horários (row 1)
         self._create_time_section()
 
-        # Relógio
+        # Botão Salvar (row 2)
+        self._create_save_button()
+
+        # Relógio (row 3)
         self._create_clock_section()
 
-        # Controles
+        # Controles (row 4)
         self._create_control_section()
 
-        # Countdown
+        # Countdown (row 5)
         self._create_countdown_section()
 
-        # Status
+        # Status (row 6)
         self._create_status_section()
 
-        # Volume
+        # Volume (row 7)
         self.setup_volume_control()
 
     def _create_url_section(self):
@@ -99,12 +99,12 @@ class PlayerView:
             fg_color="#2B7539",
             hover_color="#1E5C2C"
         )
-        self.save_button.grid(row=1, column=0, columnspan=3, pady=10)
+        self.save_button.grid(row=2, column=0, columnspan=3, pady=10)
 
     def _create_time_section(self):
         """Cria seção de configuração de horários"""
         time_frame = ctk.CTkFrame(self.main_frame)
-        time_frame.grid(row=2, column=0, columnspan=3, pady=5)
+        time_frame.grid(row=1, column=0, columnspan=3, pady=5)
 
         # Horário de início
         ctk.CTkLabel(
