@@ -69,66 +69,50 @@ class PlayerView:
         self.menu_bar.grid_columnconfigure(2, weight=1)
 
         # Menu Arquivo
-        self.file_menu_button = ctk.CTkButton(
+        self.file_menu = ctk.CTkButton(
             self.menu_bar,
             text="Arquivo",
             width=60,
             height=25,
             fg_color="transparent",
             hover_color="#404040",
-            command=self._toggle_file_menu
+            command=self._show_file_menu
         )
-        self.file_menu_button.grid(row=0, column=0, padx=2)
+        self.file_menu.grid(row=0, column=0, padx=2)
 
         # Menu Ferramentas
-        self.tools_menu_button = ctk.CTkButton(
+        self.tools_menu = ctk.CTkButton(
             self.menu_bar,
             text="Ferramentas",
             width=90,
             height=25,
             fg_color="transparent",
             hover_color="#404040",
-            command=self._toggle_tools_menu
+            command=self._show_tools_menu
         )
-        self.tools_menu_button.grid(row=0, column=1, padx=2)
+        self.tools_menu.grid(row=0, column=1, padx=2)
 
-        # Inicializa variáveis de controle dos menus
-        self.active_menu = None
-        self.menu_window = None
-
-    def _close_current_menu(self):
-        """Fecha o menu atual se existir"""
-        if self.menu_window and self.menu_window.winfo_exists():
-            self.menu_window.destroy()
-            self.menu_window = None
+        # Inicializa variável para controle do menu atual
         self.active_menu = None
 
-    def _toggle_file_menu(self):
-        """Alterna a visibilidade do menu arquivo"""
-        if self.active_menu == 'file':
-            self._close_current_menu()
-        else:
-            self._close_current_menu()
-            self._show_file_menu()
-
-    def _toggle_tools_menu(self):
-        """Alterna a visibilidade do menu ferramentas"""
-        if self.active_menu == 'tools':
-            self._close_current_menu()
-        else:
-            self._close_current_menu()
-            self._show_tools_menu()
-
-    def _show_file_menu(self):
+    def _show_file_menu(self, event=None):
         """Mostra o menu dropdown de arquivo"""
-        self.menu_window = ctk.CTkFrame(self.root, fg_color="#2B2B2B", border_width=1)
-        self.menu_window.place(
-            x=self.file_menu_button.winfo_rootx(),
-            y=self.file_menu_button.winfo_rooty() + self.file_menu_button.winfo_height()
-        )
+        # Se o menu atual for o de arquivo, fecha e retorna
+        if self.active_menu == 'file':
+            self._close_menu()
+            return
 
+        # Fecha qualquer menu aberto
+        self._close_menu()
+
+        # Cria novo menu
+        menu = ctk.CTkFrame(self.root, fg_color="#2B2B2B", border_width=1)
+        menu.place(x=self.file_menu.winfo_rootx(),
+                   y=self.file_menu.winfo_rooty() + self.file_menu.winfo_height())
+
+        # Opção Sair
         ctk.CTkButton(
-            self.menu_window,
+            menu,
             text="Sair",
             width=100,
             height=25,
@@ -137,52 +121,90 @@ class PlayerView:
             command=self.root.quit
         ).pack(fill="x", pady=1)
 
+        # Atualiza referências do menu atual
+        self.current_menu = menu
         self.active_menu = 'file'
         self._bind_menu_close()
 
     def _show_tools_menu(self):
         """Mostra o menu dropdown de ferramentas"""
-        self.menu_window = ctk.CTkFrame(self.root, fg_color="#2B2B2B", border_width=1)
-        self.menu_window.place(
-            x=self.tools_menu_button.winfo_rootx(),
-            y=self.tools_menu_button.winfo_rooty() + self.tools_menu_button.winfo_height()
-        )
+        # Se o menu atual for o de ferramentas, fecha e retorna
+        if self.active_menu == 'tools':
+            self._close_menu()
+            return
 
+        # Fecha qualquer menu aberto
+        self._close_menu()
+
+        # Cria novo menu
+        menu = ctk.CTkFrame(self.root, fg_color="#2B2B2B", border_width=1)
+        menu.place(x=self.tools_menu.winfo_rootx(),
+                   y=self.tools_menu.winfo_rooty() + self.file_menu.winfo_height())
+
+        # Opção Configurações de Áudio
         ctk.CTkButton(
-            self.menu_window,
+            menu,
             text="Configurações de Áudio",
             width=180,
             height=25,
             fg_color="transparent",
             hover_color="#404040",
-            command=lambda: self._show_config_from_menu()
+            command=lambda: self._show_config_from_menu(menu)
         ).pack(fill="x", pady=1)
 
+        self.current_menu = menu
         self.active_menu = 'tools'
         self._bind_menu_close()
 
+    def _close_menu(self):
+        """Fecha o menu dropdown atual"""
+        if hasattr(self, 'current_menu') and self.current_menu.winfo_exists():
+            self.current_menu.destroy()
+        self.active_menu = None
+        # Remove o binding de forma segura
+        try:
+            if hasattr(self, '_menu_bind_id'):
+                self.root.unbind('<Button-1>', self._menu_bind_id)
+                delattr(self, '_menu_bind_id')
+        except Exception as e:
+            print(f"Aviso: Não foi possível remover binding: {e}")
+
     def _bind_menu_close(self):
         """Configura o binding para fechar o menu ao clicar fora"""
+        # Remove binding anterior se existir
+        if hasattr(self, '_menu_bind_id'):
+            try:
+                self.root.unbind('<Button-1>', self._menu_bind_id)
+            except:
+                pass
 
-        def on_click(event):
-            if (self.menu_window and
-                    event.widget != self.menu_window and
-                    event.widget != self.file_menu_button and
-                    event.widget != self.tools_menu_button):
-                self._close_current_menu()
+        def close_menu(event):
+            # Verifica se o clique foi fora do menu e não em um botão do menu principal
+            if (event.widget != self.current_menu and
+                    event.widget != self.file_menu and
+                    event.widget != self.tools_menu):
+                self._close_menu()
 
-        self.root.bind('<Button-1>', on_click)
+        # Guarda o ID do novo binding
+        self._menu_bind_id = self.root.bind('<Button-1>', close_menu)
 
-    def _show_config_from_menu(self):
-        """Mostra a tela de configuração"""
-        self._close_current_menu()
+    def _show_config_from_menu(self, menu):
+        """Mostra a tela de configuração mantendo o tamanho da janela"""
+        # Fecha o menu
+        menu.destroy()
+
+        # Salva o tamanho atual da janela
         current_width = self.root.winfo_width()
         current_height = self.root.winfo_height()
 
+        # Oculta frame principal e mostra configurações
         self.main_frame.grid_remove()
         self.config_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
+        # Força o tamanho da janela a permanecer o mesmo
         self.root.geometry(f"{current_width}x{current_height}")
+
+        # Carrega os dispositivos
         self._load_audio_devices()
 
     def show_main_screen(self):
