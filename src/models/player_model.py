@@ -21,8 +21,43 @@ class PlayerModel:
         return {
             'stream_url': 'http://exemplo.com/stream',
             'auto_start_time': '19:00:00',
-            'auto_stop_time': '20:00:00'
+            'auto_stop_time': '20:00:00',
+            'audio_device': '',  # Dispositivo de áudio padrão
         }
+
+    def get_audio_devices(self):
+        """Retorna lista de dispositivos de áudio disponíveis"""
+        try:
+            import vlc
+            instance = vlc.Instance()
+            mplayer = instance.media_player_new()
+            devices = []
+            mods = mplayer.audio_output_device_enum()
+            if mods:
+                mod = mods
+                while mod:
+                    mod = mod.contents
+                    devices.append({
+                        'id': mod.device.decode('utf-8'),
+                        'name': mod.description.decode('utf-8')
+                    })
+                    mod = mod.next
+                vlc.libvlc_audio_output_device_list_release(mods)
+            return devices
+        except Exception as e:
+            print(f"Erro ao listar dispositivos de áudio: {e}")
+            return []
+
+    def set_audio_device(self, device_id):
+        """Define o dispositivo de áudio"""
+        try:
+            if self.media_player:
+                self.media_player.audio_output_device_set(None, device_id)
+                self.config['audio_device'] = device_id
+                return True
+        except Exception as e:
+            print(f"Erro ao definir dispositivo de áudio: {e}")
+        return False
 
     def _setup_player_state(self):
         """Inicializa o estado do player"""

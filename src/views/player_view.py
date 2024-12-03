@@ -13,14 +13,26 @@ class PlayerView:
         self.root.title("Stream Player")
 
         # Configurações da janela
-        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)  # Row 1 porque row 0 será o menu
         self.root.grid_columnconfigure(0, weight=1)
 
         # Carrega ícones
         self.load_icons()
 
-        # Cria a interface
-        self._setup_ui()
+        # Cria o menu
+        self._create_menu()
+
+        # Cria os frames principais
+        self._create_frames()
+
+        # Cria a interface principal
+        self._setup_main_ui()
+
+        # Cria a interface de configuração
+        self._setup_config_ui()
+
+        # Inicia mostrando a tela principal
+        self.show_main_screen()
 
     def load_icons(self):
         """Carrega e prepara os ícones para os botões"""
@@ -50,35 +62,226 @@ class PlayerView:
             self.play_icon = None
             self.stop_icon = None
 
-    def _setup_ui(self):
-        """Configura todos os elementos da interface"""
+    def _create_menu(self):
+        """Cria a barra de menu superior"""
+        self.menu_bar = ctk.CTkFrame(self.root, fg_color="#2B2B2B", height=25)
+        self.menu_bar.grid(row=0, column=0, sticky="ew")
+        self.menu_bar.grid_columnconfigure(2, weight=1)
+
+        # Menu Arquivo
+        self.file_menu_button = ctk.CTkButton(
+            self.menu_bar,
+            text="Arquivo",
+            width=60,
+            height=25,
+            fg_color="transparent",
+            hover_color="#404040",
+            command=self._toggle_file_menu
+        )
+        self.file_menu_button.grid(row=0, column=0, padx=2)
+
+        # Menu Ferramentas
+        self.tools_menu_button = ctk.CTkButton(
+            self.menu_bar,
+            text="Ferramentas",
+            width=90,
+            height=25,
+            fg_color="transparent",
+            hover_color="#404040",
+            command=self._toggle_tools_menu
+        )
+        self.tools_menu_button.grid(row=0, column=1, padx=2)
+
+        # Inicializa variáveis de controle dos menus
+        self.active_menu = None
+        self.menu_window = None
+
+    def _close_current_menu(self):
+        """Fecha o menu atual se existir"""
+        if self.menu_window and self.menu_window.winfo_exists():
+            self.menu_window.destroy()
+            self.menu_window = None
+        self.active_menu = None
+
+    def _toggle_file_menu(self):
+        """Alterna a visibilidade do menu arquivo"""
+        if self.active_menu == 'file':
+            self._close_current_menu()
+        else:
+            self._close_current_menu()
+            self._show_file_menu()
+
+    def _toggle_tools_menu(self):
+        """Alterna a visibilidade do menu ferramentas"""
+        if self.active_menu == 'tools':
+            self._close_current_menu()
+        else:
+            self._close_current_menu()
+            self._show_tools_menu()
+
+    def _show_file_menu(self):
+        """Mostra o menu dropdown de arquivo"""
+        self.menu_window = ctk.CTkFrame(self.root, fg_color="#2B2B2B", border_width=1)
+        self.menu_window.place(
+            x=self.file_menu_button.winfo_rootx(),
+            y=self.file_menu_button.winfo_rooty() + self.file_menu_button.winfo_height()
+        )
+
+        ctk.CTkButton(
+            self.menu_window,
+            text="Sair",
+            width=100,
+            height=25,
+            fg_color="transparent",
+            hover_color="#404040",
+            command=self.root.quit
+        ).pack(fill="x", pady=1)
+
+        self.active_menu = 'file'
+        self._bind_menu_close()
+
+    def _show_tools_menu(self):
+        """Mostra o menu dropdown de ferramentas"""
+        self.menu_window = ctk.CTkFrame(self.root, fg_color="#2B2B2B", border_width=1)
+        self.menu_window.place(
+            x=self.tools_menu_button.winfo_rootx(),
+            y=self.tools_menu_button.winfo_rooty() + self.tools_menu_button.winfo_height()
+        )
+
+        ctk.CTkButton(
+            self.menu_window,
+            text="Configurações de Áudio",
+            width=180,
+            height=25,
+            fg_color="transparent",
+            hover_color="#404040",
+            command=lambda: self._show_config_from_menu()
+        ).pack(fill="x", pady=1)
+
+        self.active_menu = 'tools'
+        self._bind_menu_close()
+
+    def _bind_menu_close(self):
+        """Configura o binding para fechar o menu ao clicar fora"""
+
+        def on_click(event):
+            if (self.menu_window and
+                    event.widget != self.menu_window and
+                    event.widget != self.file_menu_button and
+                    event.widget != self.tools_menu_button):
+                self._close_current_menu()
+
+        self.root.bind('<Button-1>', on_click)
+
+    def _show_config_from_menu(self):
+        """Mostra a tela de configuração"""
+        self._close_current_menu()
+        current_width = self.root.winfo_width()
+        current_height = self.root.winfo_height()
+
+        self.main_frame.grid_remove()
+        self.config_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+        self.root.geometry(f"{current_width}x{current_height}")
+        self._load_audio_devices()
+
+    def show_main_screen(self):
+        """Mostra a tela principal mantendo o tamanho da janela"""
+        # Salva o tamanho atual da janela
+        current_width = self.root.winfo_width()
+        current_height = self.root.winfo_height()
+
+        # Troca os frames
+        self.config_frame.grid_remove()
+        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+        # Força o tamanho da janela a permanecer o mesmo
+        self.root.geometry(f"{current_width}x{current_height}")
+
+    def _create_frames(self):
+        """Cria os frames principais da aplicação"""
         # Frame principal
         self.main_frame = ctk.CTkFrame(self.root)
-        self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
-        # URL do Stream (row 0)
+        # Frame de configurações
+        self.config_frame = ctk.CTkFrame(self.root)
+        self.config_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+    def _setup_main_ui(self):
+        """Configura a interface principal"""
+        self.main_frame.grid_columnconfigure(0, weight=1)
+
+        # URL do Stream
         self._create_url_section()
 
-        # Horários (row 1)
+        # Horários
         self._create_time_section()
 
-        # Botão Salvar (row 2)
+        # Botão Salvar
         self._create_save_button()
 
-        # Relógio (row 3)
+        # Relógio
         self._create_clock_section()
 
-        # Controles (row 4)
+        # Controles
         self._create_control_section()
 
-        # Countdown (row 5)
+        # Countdown
         self._create_countdown_section()
 
-        # Status (row 6)
+        # Status
         self._create_status_section()
 
-        # Volume (row 7)
+        # Volume
         self.setup_volume_control()
+
+    def _setup_config_ui(self):
+        """Configura a interface da tela de configurações"""
+        # Título
+        ctk.CTkLabel(
+            self.config_frame,
+            text="Configurações de Áudio",
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(pady=20)
+
+        # Frame para dispositivos
+        device_frame = ctk.CTkFrame(self.config_frame)
+        device_frame.pack(fill="x", padx=20, pady=10)
+
+        ctk.CTkLabel(
+            device_frame,
+            text="Dispositivo de Saída:",
+            font=ctk.CTkFont(size=14)
+        ).pack(pady=5)
+
+        # Combobox para dispositivos
+        self.device_var = ctk.StringVar()
+        self.device_combo = ctk.CTkOptionMenu(
+            device_frame,
+            variable=self.device_var,
+            values=["Carregando dispositivos..."],
+            width=300
+        )
+        self.device_combo.pack(pady=10)
+
+        # Botões
+        button_frame = ctk.CTkFrame(self.config_frame)
+        button_frame.pack(fill="x", padx=20, pady=20)
+
+        ctk.CTkButton(
+            button_frame,
+            text="Salvar",
+            command=self._save_audio_config,
+            fg_color="#2B7539",
+            hover_color="#1E5C2C"
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            button_frame,
+            text="Voltar",
+            command=self.show_main_screen
+        ).pack(side="left", padx=5)
 
     def _create_url_section(self):
         """Cria seção da URL do stream"""
@@ -204,6 +407,60 @@ class PlayerView:
         self.stop_button.configure(command=stop_callback)
         self.save_button.configure(command=save_callback)
 
+    def show_main_screen(self):
+        """Mostra a tela principal"""
+        self.config_frame.grid_remove()
+        self.main_frame.grid()
+
+    def show_config_screen(self):
+        """Mostra a tela de configurações"""
+        self.main_frame.grid_remove()
+        self.config_frame.grid()
+        self._load_audio_devices()
+
+    def _load_audio_devices(self):
+        """Carrega a lista de dispositivos de áudio"""
+        devices = self._get_callback('get_devices')()
+        current_device = self._get_callback('get_current_device')()
+
+        # Atualiza o combobox
+        device_names = [d['name'] for d in devices]
+        self.device_combo.configure(values=device_names)
+
+        # Guarda referência dos devices
+        self.devices = {d['name']: d['id'] for d in devices}
+
+        # Seleciona o dispositivo atual
+        for device in devices:
+            if device['id'] == current_device:
+                self.device_var.set(device['name'])
+                break
+
+    def _save_audio_config(self):
+        """Salva a configuração de áudio"""
+        selected_name = self.device_var.get()
+        device_id = self.devices.get(selected_name, '')
+        if self._get_callback('save_device')(device_id):
+            self.show_main_screen()
+
+    def _show_file_menu(self):
+        """Mostra o menu dropdown de arquivo"""
+        # Menu dropdown personalizado
+        menu = ctk.CTkFrame(self.root, fg_color="#2B2B2B")
+        menu.place(x=self.file_menu.winfo_rootx(),
+                   y=self.file_menu.winfo_rooty() + self.file_menu.winfo_height())
+
+        # Opção Sair
+        ctk.CTkButton(
+            menu,
+            text="Sair",
+            width=60,
+            height=25,
+            fg_color="transparent",
+            hover_color="#404040",
+            command=self.root.quit
+        ).pack(fill="x", pady=1)
+
     def update_config_fields(self, config):
         """Atualiza os campos com as configurações carregadas"""
         self.url_entry.delete(0, "end")
@@ -272,3 +529,7 @@ class PlayerView:
                 self.root.after(500, update_countdown)
 
         update_countdown()
+
+    def set_callback_getter(self, callback_getter):
+        """Define a função para obter callbacks"""
+        self._get_callback = callback_getter

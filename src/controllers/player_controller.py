@@ -18,8 +18,34 @@ class PlayerController:
             save_callback=self.handle_save_config
         )
 
+        # Define o getter de callbacks para a view
+        self.view.set_callback_getter(self.get_callback)
+
         # Inicializa a aplicação
         self.initialize_app()
+
+    def get_callback(self, name):
+        """Retorna o callback apropriado com base no nome"""
+        callbacks = {
+            'get_devices': self.model.get_audio_devices,
+            'get_current_device': lambda: self.model.config.get('audio_device', ''),
+            'save_device': self.handle_save_device
+        }
+        return callbacks.get(name)
+
+    def handle_save_device(self, device_id):
+        """Manipula o salvamento do dispositivo de áudio"""
+        if self.model.set_audio_device(device_id):
+            current_config = self.model.get_config()
+            current_config['audio_device'] = device_id
+            if self.model.save_config(current_config):
+                self.view.update_status("Dispositivo de áudio atualizado")
+                return True
+            else:
+                self.view.update_status("Erro ao salvar configuração")
+        else:
+            self.view.update_status("Erro ao definir dispositivo de áudio")
+        return False
 
     def initialize_app(self):
         """Inicializa a aplicação carregando configurações e iniciando processos"""
