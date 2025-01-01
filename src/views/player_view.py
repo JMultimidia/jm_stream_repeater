@@ -3,12 +3,15 @@ from datetime import datetime
 from PIL import Image
 import io
 import base64
+from ..utils.theme import AppTheme
 from ..utils.icons import PlayerIcons
 from .volume_view import VolumeView
 
 
 class PlayerView:
     def __init__(self, root):
+        self.theme = AppTheme()
+        self.theme.setup()
         self.root = root
         self.root.title("Stream Player")
 
@@ -369,7 +372,11 @@ class PlayerView:
 
     def _create_control_section(self):
         """Cria seção dos botões de controle"""
-        control_frame = ctk.CTkFrame(self.main_frame)
+        control_frame = ctk.CTkFrame(
+            self.main_frame,
+            fg_color="transparent",
+            corner_radius=15
+        )
         control_frame.grid(row=4, column=0, columnspan=3, pady=10)
 
         # Botão Play
@@ -379,11 +386,10 @@ class PlayerView:
             image=self.play_icon,
             width=80,
             height=80,
-            fg_color="#1a1a1a",
-            hover_color="#2b2b2b",
+            fg_color="transparent",
             border_width=0
         )
-        self.play_button.grid(row=0, column=0, padx=10)
+        self.play_button.grid(row=0, column=0, padx=3)
 
         # Botão Stop
         self.stop_button = ctk.CTkButton(
@@ -392,11 +398,10 @@ class PlayerView:
             image=self.stop_icon,
             width=80,
             height=80,
-            fg_color="#1a1a1a",
-            hover_color="#2b2b2b",
-            border_width=0
+            fg_color="transparent",
+            border_width=0,
         )
-        self.stop_button.grid(row=0, column=1, padx=10)
+        self.stop_button.grid(row=0, column=1, padx=3)
 
     def _create_countdown_section(self):
         """Cria seção do countdown"""
@@ -421,7 +426,9 @@ class PlayerView:
     def setup_volume_control(self):
         """Inicializa o controle de volume"""
         self.volume_view = VolumeView(self.main_frame)
-        self.volume_view.get_frame().grid(row=7, column=0, columnspan=3, pady=5)
+        volume_frame = self.volume_view.get_frame()
+        volume_frame.configure(fg_color=self.theme.get_color('bg'))
+        volume_frame.grid(row=7, column=0, columnspan=3, pady=5)
 
     def setup_bindings(self, play_callback, stop_callback, save_callback):
         """Configura os callbacks dos botões"""
